@@ -4,7 +4,6 @@
 
 
 import json
-from unittest import skipIf
 
 from django.contrib.auth.models import User
 from django.test import TestCase
@@ -19,7 +18,6 @@ from drf_haystack.mixins import FacetMixin, MoreLikeThisMixin
 from drf_haystack.serializers import HaystackFacetSerializer, HaystackSerializer
 from drf_haystack.viewsets import HaystackViewSet
 
-from . import restframework_version
 from .mockapp.models import MockPerson, MockPet
 from .mockapp.search_indexes import MockPersonIndex, MockPetIndex
 
@@ -199,31 +197,6 @@ class HaystackViewSetPermissionsTestCase(TestCase):
         # POST, PUT, PATCH and DELETE requests are not supported, so they will
         # raise an error. No need to test the permission.
 
-    @skipIf(not restframework_version < (3, 7), "Skipped due to fix in django-rest-framework > 3.6")
-    def test_viewset_get_queryset_with_DjangoModelPermissions_permission(self):
-        from rest_framework.permissions import DjangoModelPermissions
-
-        setattr(self.view, "permission_classes", (DjangoModelPermissions,))
-
-        # The `DjangoModelPermissions` is not supported and should raise an
-        # AssertionError from rest_framework.permissions.
-        request = factory.get(path="/", data="", content_type="application/json")
-        try:
-            self.view.as_view(actions={"get": "list"})(request)
-            self.fail(
-                "Did not fail with AssertionError or AttributeError "
-                "when calling HaystackView with DjangoModelPermissions"
-            )
-        except (AttributeError, AssertionError) as e:
-            if isinstance(e, AttributeError):
-                self.assertEqual(str(e), "'SearchQuerySet' object has no attribute 'model'")
-            else:
-                self.assertEqual(
-                    str(e),
-                    "Cannot apply DjangoModelPermissions on a view that does "
-                    "not have `.model` or `.queryset` property.",
-                )
-
     def test_viewset_get_queryset_with_DjangoModelPermissionsOrAnonReadOnly_permission(self):
         from rest_framework.permissions import DjangoModelPermissionsOrAnonReadOnly
 
@@ -237,28 +210,6 @@ class HaystackViewSetPermissionsTestCase(TestCase):
             self.fail(
                 "Did not fail with AssertionError when calling HaystackView with DjangoModelPermissionsOrAnonReadOnly"
             )
-        except (AttributeError, AssertionError) as e:
-            if isinstance(e, AttributeError):
-                self.assertEqual(str(e), "'SearchQuerySet' object has no attribute 'model'")
-            else:
-                self.assertEqual(
-                    str(e),
-                    "Cannot apply DjangoModelPermissions on a view that does "
-                    "not have `.model` or `.queryset` property.",
-                )
-
-    @skipIf(not restframework_version < (3, 7), "Skipped due to fix in django-rest-framework > 3.6")
-    def test_viewset_get_queryset_with_DjangoObjectPermissions_permission(self):
-        from rest_framework.permissions import DjangoObjectPermissions
-
-        setattr(self.view, "permission_classes", (DjangoObjectPermissions,))
-
-        # The `DjangoObjectPermissions` is a subclass of `DjangoModelPermissions` and
-        # therefore unsupported.
-        request = factory.get(path="/", data="", content_type="application/json")
-        try:
-            self.view.as_view(actions={"get": "list"})(request)
-            self.fail("Did not fail with AssertionError when calling HaystackView with DjangoModelPermissions")
         except (AttributeError, AssertionError) as e:
             if isinstance(e, AttributeError):
                 self.assertEqual(str(e), "'SearchQuerySet' object has no attribute 'model'")

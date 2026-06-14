@@ -1,0 +1,81 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  # renovate: datasource=pypi depName=uv
+  UV_VERSION: 0.11.21
+
+jobs:
+  test:
+    name: Test (Python ${{ matrix.python-version }}, Django ${{ matrix.django-version }}, Elasticsearch ${{ matrix.elastic-version }})
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        django-version:
+          - "4.2.*"
+        python-version:
+          - "3.8"
+          - "3.9"
+          - "3.10"
+          - "3.11"
+          - "3.12"
+        elastic-version:
+          - "7.17.29"
+    env:
+      UV_NO_DEV: 1
+      ELASTICSEARCH_VERSION: ${{ matrix.elastic-version }}
+      PYTHONUNBUFFERED: 1
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          persist-credentials: false
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version: ${{ matrix.python-version }}
+          allow-prereleases: true
+
+      - name: Install GDAL
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends gdal-bin
+
+      - name: Start Elasticsearch
+        run: docker compose up -d --wait elasticsearch
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: "${{ env.UV_VERSION }}"
+          python-version: "${{ matrix.python-version }}"
+
+      - name: Setup project and install dependencies
+        run: uv sync
+
+      # TODO: Remove this step, which relies on `setup.py`, once we
+      # migrate the build backend to hatch with `pyproject.toml`
+      - name: Install drf-haystack into the environment
+        run: uv pip install .
+
+      # Use always latest patch version of Django from the matrix version pattern `major.minor.*`.
+      - name: Install matrix django
+        env:
+          DJANGO_VERSION: ${{ matrix.django-version }}
+        run: uv pip install -U "django==${DJANGO_VERSION}"
+
+      - name: Run tests
+        run: uv run --no-sync manage.py test tests

@@ -4,9 +4,10 @@
 
 
 import json
+import unittest
 from datetime import date, datetime, timedelta
-from unittest import skipIf
 
+from django.core.exceptions import ImproperlyConfigured
 from django.test import TestCase
 from rest_framework import serializers, status
 from rest_framework.test import APIRequestFactory
@@ -24,13 +25,27 @@ from drf_haystack.mixins import FacetMixin
 from drf_haystack.serializers import HaystackFacetSerializer, HaystackSerializer
 from drf_haystack.viewsets import HaystackViewSet
 
-from . import elasticsearch_version, geospatial_support
 from .constants import MOCKLOCATION_DATA_SET_SIZE, MOCKPERSON_DATA_SET_SIZE
 from .mixins import WarningTestCaseMixin
 from .mockapp.models import MockAllField, MockLocation, MockPerson
 from .mockapp.search_indexes import MockAllFieldIndex, MockLocationIndex, MockPersonIndex
 
 factory = APIRequestFactory()
+
+
+def gdal_is_available():
+    """
+    Return True if GDAL is installed.
+
+    We can't import Point without the GDAL/GEOS libraries, so we just try it
+    and treat any failure as "not available". Used to skip the geo tests on
+    machines that don't have GDAL.
+    """
+    try:
+        from django.contrib.gis.geos import Point  # noqa: F401
+    except ImproperlyConfigured:
+        return False
+    return True
 
 
 class HaystackFilterTestCase(TestCase):
@@ -110,7 +125,10 @@ class HaystackFilterTestCase(TestCase):
         self.assertEqual(len(response.data), 1)
 
     def test_filter_aliased_field_with_lookup(self):
-        request = factory.get(path="/", data={"name__contains": "John McClane"}, content_type="application/json")
+        # `contains` builds a wildcard query (`*john* AND *mcclane*`). Since Elasticsearch 5.x
+        # dropped `lowercase_expanded_terms`, wildcard terms are matched case-sensitively against
+        # the lowercased indexed tokens, so the search value must be lowercase to match.
+        request = factory.get(path="/", data={"name__contains": "john mcclane"}, content_type="application/json")
         response = self.view1.as_view(actions={"get": "list"})(request)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.data), 1)
@@ -177,7 +195,9 @@ class HaystackFilterTestCase(TestCase):
         self.assertEqual(len(response.data), 97)
 
     def test_filter_negated_field_with_lookup(self):
-        request = factory.get(path="/", data={"name__not__contains": "John McClane"}, content_type="application/json")
+        # Lowercase value required for the wildcard `contains` lookup on Elasticsearch 5.x+
+        # (Same as `test_filter_aliased_field_with_lookup`)
+        request = factory.get(path="/", data={"name__not__contains": "john mcclane"}, content_type="application/json")
         response = self.view1.as_view(actions={"get": "list"})(request)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.data), 99)
@@ -260,7 +280,13 @@ class HaystackAutocompleteFilterTestCase(TestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
 
-@skipIf(not geospatial_support, "Skipped due to lack of GEO spatial features")
+@unittest.skipUnless(
+    gdal_is_available(),
+    "To run these geo spatial tests, make sure you've installed the ``GDAL`` "
+    "library (which also pulls in GEOS). "
+    "Run `apt install gdal-bin` on debian based linux systems, "
+    "or `brew install gdal` on OS X.",
+)
 class HaystackGEOSpatialFilterTestCase(TestCase):
     fixtures = ["mocklocation"]
 
@@ -318,7 +344,9 @@ class HaystackHighlightFilterTestCase(TestCase):
         class Serializer(HaystackSerializer):
             class Meta:
                 index_classes = [MockPersonIndex]
-                fields = ["firstname", "lastname"]
+                # `text` (the document field) must be filterable so the query can
+                # target it; Elasticsearch only highlights matched fields.
+                fields = ["text", "firstname", "lastname"]
 
         class ViewSet(HaystackViewSet):
             index_models = [MockPerson]
@@ -330,14 +358,16 @@ class HaystackHighlightFilterTestCase(TestCase):
     def tearDown(self):
         MockPersonIndex().clear()
 
-    @skipIf(not elasticsearch_version < (2,), "Highlighting is not yet supported for the Elasticsearch2 backend")
     def test_filter_highlighter_filter(self):
-        request = factory.get(path="/", data={"firstname": "jeremy"}, content_type="application/json")
+        # Elasticsearch only highlights fields that participated in the match, and
+        # the backend requests highlighting on the `text` document field, so the
+        # query has to target `text` for a `highlighted` fragment to be returned.
+        request = factory.get(path="/", data={"text": "jeremy"}, content_type="application/json")
         response = self.view.as_view(actions={"get": "list"})(request)
         response.render()
         for result in json.loads(response.content.decode()):
             self.assertTrue("highlighted" in result)
-            self.assertEqual(result["highlighted"], " ".join(("<em>Jeremy</em>", "{}\n".format(result["lastname"]))))
+            self.assertEqual(result["highlighted"], " ".join(("<em>Jeremy</em>", result["lastname"])))
 
 
 class HaystackBoostFilterTestCase(TestCase):

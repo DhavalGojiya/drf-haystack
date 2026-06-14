@@ -57,5 +57,5 @@ setup(
         "Topic :: Internet :: WWW/HTTP :: Indexing/Search",
         "Topic :: Software Development :: Libraries :: Python Modules",
     ],
-    python_requires=">=3.8, <3.11",
+    python_requires=">=3.8, <3.15",
 )

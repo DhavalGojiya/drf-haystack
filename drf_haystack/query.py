@@ -4,6 +4,7 @@ from functools import reduce
 from itertools import chain
 
 from dateutil import parser
+from django.core.exceptions import ImproperlyConfigured
 
 from drf_haystack import constants
 from drf_haystack.utils import merge_dict
@@ -263,15 +264,16 @@ class SpatialQueryBuilder(BaseQueryBuilder):
         )
 
         try:
-            from haystack.utils.geo import D, Point
+            from django.contrib.gis.geos import Point
+            from django.contrib.gis.measure import D
 
             self.D = D
             self.Point = Point
-        except ImportError:
+        except ImproperlyConfigured:
             warnings.warn(
-                "Make sure you've installed the `libgeos` library. "
-                "Run `apt-get install libgeos` on debian based linux systems, "
-                "or `brew install geos` on OS X."
+                "Make sure you've installed the ``GDAL`` library (which also pulls in GEOS). "
+                "Run `apt install gdal-bin` on debian based linux systems, "
+                "or `brew install gdal` on OS X."
             )
             raise
 
