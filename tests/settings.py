@@ -55,7 +55,7 @@ STATIC_URL = "/static/"
 
 HAYSTACK_CONNECTIONS = {
     "default": {
-        "ENGINE": "haystack.backends.elasticsearch_backend.ElasticsearchSearchEngine",
+        "ENGINE": "haystack.backends.elasticsearch7_backend.Elasticsearch7SearchEngine",
         "URL": os.environ.get("ELASTICSEARCH_URL", "http://localhost:9200/"),
         "INDEX_NAME": "drf-haystack-test",
         "INCLUDE_SPELLING": True,
@@ -96,13 +96,3 @@ LOGGING = {
         },
     },
 }
-
-try:
-    import elasticsearch
-
-    if (2,) <= elasticsearch.VERSION <= (3,):
-        HAYSTACK_CONNECTIONS["default"].update({
-            "ENGINE": "haystack.backends.elasticsearch2_backend.Elasticsearch2SearchEngine"
-        })
-except ImportError:
-    del HAYSTACK_CONNECTIONS["default"]  # This will intentionally cause everything to break!

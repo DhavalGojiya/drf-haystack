@@ -2,6 +2,7 @@ from datetime import date, datetime, timedelta
 from random import randint, randrange
 
 import pytz
+from django.core.exceptions import ImproperlyConfigured
 from django.db import models
 
 
@@ -37,11 +38,11 @@ class MockLocation(models.Model):
     @property
     def coordinates(self):
         try:
-            from haystack.utils.geo import Point
-        except ImportError:
-            return None
-        else:
+            from django.contrib.gis.geos import Point
+
             return Point(self.longitude, self.latitude, srid=4326)
+        except ImproperlyConfigured:
+            return None
 
 
 class MockPerson(models.Model):

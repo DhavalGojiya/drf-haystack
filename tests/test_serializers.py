@@ -87,7 +87,7 @@ router = DefaultRouter()
 router.register("search-person-mlt", viewset=SearchPersonMLTViewSet, basename="search-person-mlt")
 router.register("search-person-facet", viewset=SearchPersonFacetViewSet, basename="search-person-facet")
 
-urlpatterns = [path(r"^", include(router.urls))]
+urlpatterns = [path("", include(router.urls))]
 
 
 class HaystackSerializerTestCase(WarningTestCaseMixin, TestCase):
@@ -640,7 +640,7 @@ class HaystackMultiSerializerTestCase(WarningTestCaseMixin, TestCase):
         self.assertEqual(
             json.loads(json.dumps(serializer.data)),
             [
-                {"has_rabies": True, "text": "Zane", "name": "Zane", "species": "Dog"},
+                {"has_rabies": True, "text": "Zane\n", "name": "Zane", "species": "Dog"},
                 {
                     "text": "Zane Griffith\n",
                     "firstname": "Zane",
