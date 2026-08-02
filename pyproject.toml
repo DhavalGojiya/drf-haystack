@@ -1,3 +1,7 @@
+[build-system]
+build-backend = "uv_build"
+requires = [ "uv-build>=0.12.1,<0.13" ]
+
 [project]
 name = "drf-haystack"
 version = "1.9.1"
@@ -59,6 +63,15 @@ docs = [
 [tool.uv]
 default-groups = [ "dev", "test" ]
 fork-strategy = "fewest"
+build-backend.module-root = ""
+build-backend.source-exclude = [
+    "docs/_build",
+]
+build-backend.source-include = [
+    "LICENSE.txt",
+    "docs/**",
+    "tests/**",
+]
 
 [tool.pyproject-fmt]
 indent = 4
