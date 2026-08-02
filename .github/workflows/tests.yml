@@ -77,11 +77,6 @@ jobs:
       - name: Setup project and install dependencies
         run: uv sync
 
-      # TODO: Remove this step, which relies on `setup.py`, once we
-      # migrate the build backend to hatch with `pyproject.toml`
-      - name: Install drf-haystack into the environment
-        run: uv pip install .
-
       # Use always latest patch version of Django from the matrix version pattern `major.minor.*`.
       - name: Install matrix django
         env:
