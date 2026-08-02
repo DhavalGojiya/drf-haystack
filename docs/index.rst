@@ -44,7 +44,7 @@ It's in the cheese shop!
 Requirements
 ============
     - A Supported Django install
-    - Django REST Framework v3.2.0 and later
+    - Django REST Framework v3.16 and later
     - Haystack v2.5 and later
     - A supported search engine such as Solr, Elasticsearch, Whoosh, etc.
     - Python bindings for the chosen backend (see below).
