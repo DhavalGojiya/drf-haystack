@@ -31,7 +31,7 @@ classifiers = [
 dependencies = [
     "django>=5.2,<5.3",
     "django-haystack>=3.3.0,<4",
-    "djangorestframework>=3.12,<3.16",
+    "djangorestframework>=3.16",
     "python-dateutil",
 ]
 urls.Documentation = "https://drf-haystack.readthedocs.io"
