@@ -77,6 +77,9 @@ jobs:
       - name: Setup project and install dependencies
         run: uv sync
 
+      - name: Verify package builds
+        run: uv build
+
       # Use always latest patch version of Django from the matrix version pattern `major.minor.*`.
       - name: Install matrix django
         env:
