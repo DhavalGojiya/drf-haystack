@@ -7,7 +7,7 @@ name = "drf-haystack"
 version = "1.9.1"
 description = "Makes Haystack play nice with Django REST Framework"
 readme = "README.md"
-license = { text = "MIT" }
+license = "MIT"
 authors = [
     { name = "Dhaval Gojiya", email = "dhavalgojiya10@gmail.com" },
     { name = "Rolf Håvard Blindheim", email = "rhblind@gmail.com" },
