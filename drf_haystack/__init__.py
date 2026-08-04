@@ -1,9 +1,15 @@
 import warnings
+from importlib.metadata import PackageNotFoundError, version
 
 __title__ = "drf-haystack"
-__version__ = "1.9.1"
 __author__ = "Rolf Haavard Blindheim"
 __license__ = "MIT License"
+
+
+try:
+    __version__ = version("drf-haystack")
+except PackageNotFoundError:
+    __version__ = "unknown"
 
 VERSION = __version__
 
