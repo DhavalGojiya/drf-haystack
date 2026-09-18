@@ -15,7 +15,11 @@ authors = [
 ]
 requires-python = ">=3.11,<3.15"
 classifiers = [
-    "Development Status :: 5 - Production/Stable",
+    # The package spent more than a year without maintenance,
+    # then get a big release with no overlapping Python / Django support.
+    # We are not confident enough to call development status as stable for now.
+    # Can be updated later, depending on the user experience / feedback.
+    "Development Status :: 4 - Beta",
     "Environment :: Web Environment",
     "Framework :: Django",
     "Framework :: Django :: 5.2",
